@@ -1,0 +1,11 @@
+.vs
+_NCrunch_HandyMigrations
+_ReSharper.Caches
+
+*.ncrunchsolution
+*.user
+
+HandyMigrations.Tests/bin
+HandyMigrations.Tests/obj
+HandyMigrations/bin
+HandyMigrations/obj
