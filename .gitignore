@@ -9,3 +9,5 @@ HandyMigrations.Tests/bin
 HandyMigrations.Tests/obj
 HandyMigrations/bin
 HandyMigrations/obj
+
+/HandyMigrations/nuget-push.ps1
