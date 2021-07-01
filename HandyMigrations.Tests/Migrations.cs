@@ -6,8 +6,6 @@ using System.Threading.Tasks;
 using HandyMigrations.Extensions;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace HandyMigrations.Tests
@@ -27,7 +25,6 @@ namespace HandyMigrations.Tests
             services.AddSingleton<DbConnection>(conn);
             services.AddSingleton<IDbConnection>(conn);
 
-            services.AddSingleton<ILogger>(NullLogger.Instance);
             services.AddTransient<IMigrationManager, TMigrationManager>();
 
             var provider = services.BuildServiceProvider();
@@ -96,8 +93,8 @@ namespace HandyMigrations.Tests
         private class EmptyMigrationManager
             : MigrationManager
         {
-            public EmptyMigrationManager(ILogger logger, DbConnection db, IServiceProvider services)
-                : base(logger, db, services, Migrations())
+            public EmptyMigrationManager(DbConnection db, IServiceProvider services)
+                : base(db, services, Migrations())
             {
             }
 
@@ -111,8 +108,8 @@ namespace HandyMigrations.Tests
         private class AddTableMigrationManager
             : MigrationManager
         {
-            public AddTableMigrationManager(ILogger logger, DbConnection db, IServiceProvider services)
-                : base(logger, db, services, Migrations())
+            public AddTableMigrationManager(DbConnection db, IServiceProvider services)
+                : base(db, services, Migrations())
             {
             }
 

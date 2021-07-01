@@ -6,7 +6,6 @@ using System.Threading.Tasks;
 using Dapper;
 using Dapper.Contrib.Extensions;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 
 namespace HandyMigrations
 {
@@ -22,14 +21,12 @@ namespace HandyMigrations
     public abstract class MigrationManager
         : IMigrationManager
     {
-        private readonly ILogger _logger;
         private readonly DbConnection _db;
         private readonly IServiceProvider _services;
         private readonly IReadOnlyList<Type> _migrations;
 
-        protected MigrationManager(ILogger logger, DbConnection db, IServiceProvider services, IReadOnlyList<Type> migrations)
+        protected MigrationManager(DbConnection db, IServiceProvider services, IReadOnlyList<Type> migrations)
         {
-            _logger = logger;
             _db = db;
             _services = services;
             _migrations = migrations;
@@ -41,7 +38,6 @@ namespace HandyMigrations
             // the DB, if this returns null then the DB is uninitialised and we need
             // to run version 0 which means the "current" version is effectively -1
             var current = await GetCurrentVersion();
-            _logger.LogDebug("Current DB version: {0}", current);
 
             // Sanity check that the DB is not _too_ new
             if (current >= _migrations.Count)
@@ -53,9 +49,7 @@ namespace HandyMigrations
                 // Start a transaction for this single migration
                 await using var tsx = await _db.BeginTransactionAsync();
 
-                _logger.LogInformation("Finding migration: {0}", i);
                 var migration = (IMigration)ActivatorUtilities.GetServiceOrCreateInstance(_services, _migrations[i]);
-                _logger.LogInformation("Applying migration: {1}", i, migration);
                 await migration.Apply(tsx);
 
                 _db.Insert(new MigrationVersion {VersionApplied = i}, tsx);
