@@ -88,7 +88,7 @@ namespace HandyMigrations.Extensions
             ForeignKey = foreignKey;
         }
 
-        internal string ToSql(ColumnAttributes attrRemove = ColumnAttributes.None)
+        internal string ToSql(ColumnAttributes attrRemove = ColumnAttributes.None, bool includeForeign = false)
         {
             var attrsBuilder = new StringBuilder("");
             if (Attr != ColumnAttributes.None)
@@ -110,6 +110,10 @@ namespace HandyMigrations.Extensions
             }
 
             var str = $"'{Name}' {Type} {attrsBuilder}";
+
+            if (includeForeign && ForeignKey != null)
+                str += $" REFERENCES '{ForeignKey.ForeignTable}'('{ForeignKey.ForeignColumn}')";
+
             return str;
         }
     }

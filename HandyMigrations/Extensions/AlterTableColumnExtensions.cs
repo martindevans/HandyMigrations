@@ -11,13 +11,9 @@ namespace HandyMigrations.Extensions
         {
             if (column.Attr.HasFlag(ColumnAttributes.PrimaryKey))
                 throw new NotImplementedException("Alter table add primary key");
-            if (column.ForeignKey != null)
-                throw new NotImplementedException("Alter table add foreign key");
 
-            await tsx.Connection.ExecuteAsync(
-                $"ALTER TABLE '{table}' ADD COLUMN {column.ToSql(ColumnAttributes.Unique)}",
-                transaction: tsx
-            );
+            var sql = $"ALTER TABLE '{table}' ADD COLUMN {column.ToSql(ColumnAttributes.Unique, true)}";
+            await tsx.Connection.ExecuteAsync(sql, transaction: tsx);
 
             if (column.Attr.HasFlag(ColumnAttributes.Unique))
             {

@@ -32,7 +32,6 @@ namespace HandyMigrations.Tests
             return provider;
         }
 
-
         [TestMethod]
         public async Task ApplyNoMigrations()
         {
@@ -89,7 +88,33 @@ namespace HandyMigrations.Tests
             await ActivatorUtilities.GetServiceOrCreateInstance<EmptyMigrationManager>(provider).Apply();
         }
 
-        // ReSharper disable once ClassNeverInstantiated.Local
+        [TestMethod]
+        public async Task AddColumnWithForeignKey()
+        {
+            // Open DB connection
+            var conn = new SqliteConnection("Data Source=:memory:");
+            conn.Open();
+
+            await using (var tsx = conn.BeginTransaction())
+            {
+                await tsx.CreateTable(new("table") {
+                    new("column1", ColumnType.Integer)
+                });
+                await tsx.CreateTable(new("table2") {
+                    new("column2", ColumnType.Integer)
+                });
+
+                await tsx.CommitAsync();
+            }
+
+            await using (var tsx = conn.BeginTransaction())
+            {
+                await tsx.AlterTableAddColumn("table", new("column2", ColumnType.Integer, ColumnAttributes.None, new ForeignKey("table2", "column1")));
+
+                await tsx.CommitAsync();
+            }
+        }
+
         private class EmptyMigrationManager
             : MigrationManager
         {
@@ -104,7 +129,6 @@ namespace HandyMigrations.Tests
             }
         }
 
-        // ReSharper disable once ClassNeverInstantiated.Local
         private class AddTableMigrationManager
             : MigrationManager
         {
