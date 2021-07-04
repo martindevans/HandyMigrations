@@ -151,7 +151,7 @@ namespace HandyMigrations.Tests
             public Task Apply(DbTransaction tsx)
             {
                 return tsx.CreateTable(new("test_table") {
-                    new("col1", ColumnType.Integer)
+                    new("col1", ColumnType.Integer, ColumnAttributes.Unique | ColumnAttributes.NotNull)
                 });
             }
         }

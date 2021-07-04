@@ -95,7 +95,7 @@ namespace HandyMigrations.Extensions
             {
                 foreach (var value in Enum.GetValues<ColumnAttributes>())
                 {
-                    if (!Attr.HasFlag(value) && !attrRemove.HasFlag(value))
+                    if (!Attr.HasFlag(value) || attrRemove.HasFlag(value))
                         continue;
 
                     var attr = value switch {
