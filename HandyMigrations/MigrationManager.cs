@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Dapper;
 using Dapper.Contrib.Extensions;
+using HandyMigrations.Exceptions;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace HandyMigrations
@@ -21,12 +22,22 @@ namespace HandyMigrations
     public abstract class MigrationManager
         : IMigrationManager
     {
+        private readonly string _appid;
+
         private readonly DbConnection _db;
         private readonly IServiceProvider _services;
         private readonly IReadOnlyList<Type> _migrations;
 
-        protected MigrationManager(DbConnection db, IServiceProvider services, IReadOnlyList<Type> migrations)
+        /// <summary>
+        /// Create a new migration manager
+        /// </summary>
+        /// <param name="appid">Unique ID for this application.</param>
+        /// <param name="db"></param>
+        /// <param name="services"></param>
+        /// <param name="migrations"></param>
+        protected MigrationManager(string appid, DbConnection db, IServiceProvider services, IReadOnlyList<Type> migrations)
         {
+            _appid = appid;
             _db = db;
             _services = services;
             _migrations = migrations;
@@ -34,9 +45,12 @@ namespace HandyMigrations
 
         public async Task<int> Apply()
         {
+            // Check that this is a database for the current app
+            await CheckAppId();
+
             // Get the current version of the migrations that have already been applied to
-            // the DB, if this returns null then the DB is uninitialised and we need
-            // to run version 0 which means the "current" version is effectively -1
+            // the DB, if this returns -1 then the DB is uninitialised and we need
+            // to run version 0
             var current = await GetCurrentVersion();
 
             // Sanity check that the DB is not _too_ new
@@ -60,14 +74,32 @@ namespace HandyMigrations
             return _migrations.Count;
         }
 
+        private async Task CheckAppId()
+        {
+            // Create the id table in case this is an uninitialised database
+            await using (var tsx = await _db.BeginTransactionAsync())
+            {
+                await _db.ExecuteAsync("CREATE TABLE IF NOT EXISTS 'AppIds' ('ApplicationId' TEXT NOT NULL);", transaction: tsx);
+                await tsx.CommitAsync();
+            }
+
+            // Check if the ID is a mismatch
+            var id = await _db.QueryFirstOrDefaultAsync<AppId>("SELECT * FROM AppIds");
+            if (id != null && id.ApplicationId != _appid)
+                throw new AppIdMismatchException(_appid.ToString(), id.ApplicationId.ToString());
+
+            // Insert the ID if it was missing
+            await using (var tsx = await _db.BeginTransactionAsync())
+                _db.Insert(new AppId(_appid), transaction: tsx);
+        }
+
         private async Task<int> GetCurrentVersion()
         {
             // Create the migration table in case this is an uninitialised database
             await using (var tsx = await _db.BeginTransactionAsync())
             {
-                await _db.ExecuteAsync("CREATE TABLE IF NOT EXISTS 'MigrationVersions' ('VersionApplied' INTEGER NOT NULL UNIQUE);");
-                await _db.ExecuteAsync("CREATE UNIQUE INDEX IF NOT EXISTS 'MigrationVersionsIndex' ON 'MigrationVersions' ('VersionApplied' ASC);");
-                
+                await _db.ExecuteAsync("CREATE TABLE IF NOT EXISTS 'MigrationVersions' ('VersionApplied' INTEGER NOT NULL UNIQUE);", transaction: tsx);
+                await _db.ExecuteAsync("CREATE UNIQUE INDEX IF NOT EXISTS 'MigrationVersionsIndex' ON 'MigrationVersions' ('VersionApplied' ASC);", transaction: tsx);
                 await tsx.CommitAsync();
             }
 
@@ -80,6 +112,16 @@ namespace HandyMigrations
         internal class MigrationVersion
         {
             public int VersionApplied { get; set; }
+        }
+
+        internal class AppId
+        {
+            public string ApplicationId { get; set; }
+
+            public AppId(string applicationId)
+            {
+                ApplicationId = applicationId;
+            }
         }
     }
 }

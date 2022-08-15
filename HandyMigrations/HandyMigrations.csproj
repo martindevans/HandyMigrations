@@ -1,16 +1,16 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net5.0</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
     <Nullable>enable</Nullable>
     <Authors>Martin Evans</Authors>
-    <Version>2.1.1</Version>
+    <Version>2.2.0</Version>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Dapper" Version="2.0.90" />
+    <PackageReference Include="Dapper" Version="2.0.123" />
     <PackageReference Include="Dapper.Contrib" Version="2.0.78" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="5.0.1" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="6.0.0" />
   </ItemGroup>
 
 </Project>

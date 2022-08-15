@@ -13,7 +13,7 @@ namespace HandyMigrations.Tests
     [TestClass]
     public class Migrations
     {
-        private static IServiceProvider Setup<TMigrationManager>()
+        private static IServiceProvider Setup<TMigrationManager>(TMigrationManager instance = null, string id = "test")
             where TMigrationManager : class, IMigrationManager
         {
             var services = new ServiceCollection();
@@ -25,7 +25,12 @@ namespace HandyMigrations.Tests
             services.AddSingleton<DbConnection>(conn);
             services.AddSingleton<IDbConnection>(conn);
 
-            services.AddTransient<IMigrationManager, TMigrationManager>();
+            services.AddSingleton(new AppId { Id = id });
+
+            if (instance != null)
+                services.AddSingleton<IMigrationManager, TMigrationManager>(_ => instance);
+            else
+                services.AddSingleton<IMigrationManager, TMigrationManager>();
 
             var provider = services.BuildServiceProvider();
 
@@ -109,17 +114,32 @@ namespace HandyMigrations.Tests
 
             await using (var tsx = conn.BeginTransaction())
             {
-                await tsx.AlterTableAddColumn("table", new("column2", ColumnType.Integer, ColumnAttributes.None, new ForeignKey("table2", "column1")));
+                await tsx.AlterTableAddColumn("table", new("column2", ColumnType.Integer, ColumnAttributes.None, new ForeignKey("table2", "column2")));
 
                 await tsx.CommitAsync();
             }
         }
 
+        [TestMethod]
+        public async Task AddIndex()
+        {
+            var provider = Setup<AddTableAndIndexMigrationManager>();
+
+            var version = await provider.GetRequiredService<IMigrationManager>().Apply();
+
+            Assert.AreEqual(2, version);
+        }
+
+        public class AppId
+        {
+            public string Id;
+        }
+
         private class EmptyMigrationManager
             : MigrationManager
         {
-            public EmptyMigrationManager(DbConnection db, IServiceProvider services)
-                : base(db, services, Migrations())
+            public EmptyMigrationManager(AppId id, DbConnection db, IServiceProvider services)
+                : base(id.Id, db, services, Migrations())
             {
             }
 
@@ -132,8 +152,8 @@ namespace HandyMigrations.Tests
         private class AddTableMigrationManager
             : MigrationManager
         {
-            public AddTableMigrationManager(DbConnection db, IServiceProvider services)
-                : base(db, services, Migrations())
+            public AddTableMigrationManager(AppId id, DbConnection db, IServiceProvider services)
+                : base(id.Id, db, services, Migrations())
             {
             }
 
@@ -153,6 +173,35 @@ namespace HandyMigrations.Tests
                 return tsx.CreateTable(new("test_table") {
                     new("col1", ColumnType.Integer, ColumnAttributes.Unique | ColumnAttributes.NotNull)
                 });
+            }
+        }
+
+        private class AddIndexMigration
+            : IMigration
+        {
+            public Task Apply(DbTransaction tsx)
+            {
+                return tsx.CreateIndex(new("test_index", "test_table")
+                {
+                    new IndexItem("col1"),
+                });
+            }
+        }
+
+        private class AddTableAndIndexMigrationManager
+            : MigrationManager
+        {
+            public AddTableAndIndexMigrationManager(AppId id, DbConnection db, IServiceProvider services)
+                : base(id.Id, db, services, Migrations())
+            {
+            }
+
+            private static IReadOnlyList<Type> Migrations()
+            {
+                return new[] {
+                    typeof(AddTableMigration),
+                    typeof(AddIndexMigration),
+                };
             }
         }
     }

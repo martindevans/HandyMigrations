@@ -2,6 +2,9 @@
 
 namespace HandyMigrations
 {
+    /// <summary>
+    /// Thrown when encountering a database with a version number > the maximum known version
+    /// </summary>
     public class MigrationVersionTooHighException
         : Exception
     {
