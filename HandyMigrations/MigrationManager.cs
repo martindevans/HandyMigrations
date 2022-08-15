@@ -79,18 +79,24 @@ namespace HandyMigrations
             // Create the id table in case this is an uninitialised database
             await using (var tsx = await _db.BeginTransactionAsync())
             {
-                await _db.ExecuteAsync("CREATE TABLE IF NOT EXISTS 'AppIds' ('ApplicationId' TEXT NOT NULL);", transaction: tsx);
+                await _db.ExecuteAsync("CREATE TABLE IF NOT EXISTS 'AppIds' ('App' TEXT NOT NULL);", transaction: tsx);
                 await tsx.CommitAsync();
             }
 
             // Check if the ID is a mismatch
             var id = await _db.QueryFirstOrDefaultAsync<AppId>("SELECT * FROM AppIds");
-            if (id != null && id.ApplicationId != _appid)
-                throw new AppIdMismatchException(_appid.ToString(), id.ApplicationId.ToString());
+            if (id != null && id.App != _appid)
+                throw new AppIdMismatchException(_appid, id.App);
 
             // Insert the ID if it was missing
-            await using (var tsx = await _db.BeginTransactionAsync())
-                _db.Insert(new AppId(_appid), transaction: tsx);
+            if (id == null)
+            {
+                await using (var tsx = await _db.BeginTransactionAsync())
+                {
+                    _db.Insert(new AppId {App = _appid}, transaction: tsx);
+                    await tsx.CommitAsync();
+                }
+            }
         }
 
         private async Task<int> GetCurrentVersion()
@@ -113,15 +119,10 @@ namespace HandyMigrations
         {
             public int VersionApplied { get; set; }
         }
+    }
 
-        internal class AppId
-        {
-            public string ApplicationId { get; set; }
-
-            public AppId(string applicationId)
-            {
-                ApplicationId = applicationId;
-            }
-        }
+    public class AppId
+    {
+        public string App { get; set; } = null!;
     }
 }
