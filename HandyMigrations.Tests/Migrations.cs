@@ -170,8 +170,9 @@ namespace HandyMigrations.Tests
         {
             public Task Apply(DbTransaction tsx)
             {
-                return tsx.CreateTable(new("test_table") {
-                    new("col1", ColumnType.Integer, ColumnAttributes.Unique | ColumnAttributes.NotNull)
+                return tsx.CreateTable(new("test_table", new PrimaryKey("col2", true)) {
+                    new("col1", ColumnType.Integer, ColumnAttributes.Unique | ColumnAttributes.NotNull),
+                    new("col2", ColumnType.Integer, ColumnAttributes.Unique | ColumnAttributes.NotNull)
                 });
             }
         }

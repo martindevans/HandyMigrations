@@ -67,6 +67,8 @@ namespace HandyMigrations.Extensions
                 builder.AppendJoin(",", _columns.Where(c => c.ForeignKey != null).Select(c => c.ForeignKey!.ToSql(c.Name)));
             }
 
+
+
             builder.Append($");");
 
             return builder.ToString();
@@ -134,6 +136,7 @@ namespace HandyMigrations.Extensions
 
     public class PrimaryKey
     {
+        private readonly bool _autoincrement;
         public IReadOnlyList<string> Columns { get; }
 
         public PrimaryKey(params string[] columns)
@@ -141,7 +144,23 @@ namespace HandyMigrations.Extensions
             Columns = columns;
         }
 
-        internal string ToSql() => $"PRIMARY KEY({string.Join(",", Columns.Select(c => $"'{c}'"))})";
+        public PrimaryKey(string column, bool autoincrement = false)
+        {
+            _autoincrement = autoincrement;
+            Columns = new[] { column };
+        }
+
+        internal string ToSql()
+        {
+            if (_autoincrement)
+            {
+                return $"PRIMARY KEY(\"{Columns[0]}\" AUTOINCREMENT)";
+            }
+            else
+            {
+                return $"PRIMARY KEY({string.Join(",", Columns.Select(c => $"'{c}'"))})";
+            }
+        }
     }
 
     public enum ColumnType
@@ -158,7 +177,6 @@ namespace HandyMigrations.Extensions
         None = 0,
         NotNull = 1,
         PrimaryKey = 2,
-        Unique = 4,
-        AutoIncrement = 8,
+        Unique = 4
     }
 }
