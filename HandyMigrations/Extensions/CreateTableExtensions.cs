@@ -103,6 +103,7 @@ namespace HandyMigrations.Extensions
                     var attr = value switch {
                         ColumnAttributes.None => "",
                         ColumnAttributes.NotNull => "NOT NULL",
+                        ColumnAttributes.PrimaryKey => "PRIMARY KEY",
                         _ => value.ToString().ToUpper()
                     };
                     attrsBuilder.Append(attr);
