@@ -5,6 +5,7 @@
     <Nullable>enable</Nullable>
     <Authors>Martin Evans</Authors>
     <Version>3.0.1</Version>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
   </PropertyGroup>
 
   <ItemGroup>
